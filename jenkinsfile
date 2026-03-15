@@ -2,12 +2,15 @@ pipeline {
     agent any
     
     environment {
+        
         PATH = "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin"
         DOCKER_IMAGE = 'abhishek19/sample-app:latest'
         GCP_PROJECT = 'my-cloud-native-project-490312'
         GKE_CLUSTER = 'cicd-gke-cluster'
         GKE_ZONE = 'europe-west4-a'
         KUBECONFIG = '/Users/abhishekzod/.kube/config'
+       
+        DOCKER_HUB_PASSWORD = credentials('docker-hub-credentials')
     }
     
     stages {
@@ -32,11 +35,13 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    withEnv(['PATH=/usr/local/bin:/usr/bin:/bin']) {
-                        docker.withRegistry('', 'docker-hub-credentials') {
-                            docker.image("${DOCKER_IMAGE}").push()
-                        }
-                    }
+                    sh """
+                        # Login to Docker Hub
+                        echo "${DOCKER_HUB_PASSWORD}" | docker login -u abhishek19 --password-stdin
+                        
+                        # Push the image
+                        docker push ${DOCKER_IMAGE}
+                    """
                 }
             }
         }
