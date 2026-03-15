@@ -2,22 +2,20 @@ pipeline {
     agent any
     
     environment {
-       
         DOCKER_IMAGE = 'Abhishek19/sample-app:${BUILD_NUMBER}'
         GCP_PROJECT = 'my-cloud-native-project-490312'
         GKE_CLUSTER = 'cicd-gke-cluster'
         GKE_ZONE = 'europe-west4-a'
-        
         KUBECONFIG = '/Users/abhishekzod/.kube/config'
     }
     
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main'
-                git 'https://github.com/Abhishekzod19/Cloud-Native-CI-CD-Deployment-Platform.git'
                 
-                credentialsId: 'github-credentials'
+                git branch: 'main', 
+                    url: 'https://github.com/Abhishekzod19/Cloud-Native-CI-CD-Deployment-Platform.git',
+                    credentialsId: 'github-credentials'
             }
         }
         
@@ -47,7 +45,7 @@ pipeline {
                             --zone ${GKE_ZONE} --project ${GCP_PROJECT}
                         
                         # Replace image in deployment
-                        sed -i '' 's|\${DOCKER_IMAGE}|${DOCKER_IMAGE}|g' kubernetes/deployment.yaml
+                        sed -i '' 's|\\${DOCKER_IMAGE}|${DOCKER_IMAGE}|g' kubernetes/deployment.yaml
                         
                         # Apply Kubernetes manifests
                         kubectl apply -f kubernetes/deployment.yaml
