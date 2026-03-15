@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-        DOCKER_IMAGE = 'Abhishek19/sample-app:${BUILD_NUMBER}'
+        DOCKER_IMAGE = 'abhishek19/sample-app:${BUILD_NUMBER}'
         GCP_PROJECT = 'my-cloud-native-project-490312'
         GKE_CLUSTER = 'cicd-gke-cluster'
         GKE_ZONE = 'europe-west4-a'
