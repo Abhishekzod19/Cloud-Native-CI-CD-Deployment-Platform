@@ -24,6 +24,9 @@ pipeline {
             steps {
                 script {
                     dir('app') {
+                        // Logout first to clear bad credentials
+                        sh 'docker logout'
+                        // Now build (will pull base image anonymously)
                         docker.build("${DOCKER_IMAGE}")
                     }
                 }
