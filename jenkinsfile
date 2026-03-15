@@ -1,0 +1,81 @@
+pipeline {
+    agent any
+    
+    environment {
+        // REPLACE THESE WITH YOUR VALUES
+        DOCKER_IMAGE = 'Abhishek19/sample-app:${BUILD_NUMBER}'
+        GCP_PROJECT = '**YOUR_GCP_PROJECT_ID**'
+        GKE_CLUSTER = 'cicd-gke-cluster'
+        GKE_ZONE = 'us-central1-a'
+        // REPLACE WITH YOUR MAC USERNAME
+        KUBECONFIG = '/Users/**YOUR_MAC_USERNAME**/.kube/config'
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                // REPLACE WITH YOUR GITHUB REPO
+                git '**https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME.git**'
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    docker.build("${DOCKER_IMAGE}")
+                }
+            }
+        }
+        
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    docker.withRegistry('', 'docker-hub-credentials') {
+                        docker.image("${DOCKER_IMAGE}").push()
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy to GKE') {
+            steps {
+                script {
+                    sh """
+                        gcloud container clusters get-credentials ${GKE_CLUSTER} \
+                            --zone ${GKE_ZONE} --project ${GCP_PROJECT}
+                        
+                        # Replace image in deployment
+                        sed -i '' 's|\${DOCKER_IMAGE}|${DOCKER_IMAGE}|g' kubernetes/deployment.yaml
+                        
+                        # Apply Kubernetes manifests
+                        kubectl apply -f kubernetes/deployment.yaml
+                        kubectl apply -f kubernetes/service.yaml
+                        
+                        # Wait for rollout
+                        kubectl rollout status deployment/sample-app
+                    """
+                }
+            }
+        }
+        
+        stage('Get Application URL') {
+            steps {
+                script {
+                    sh """
+                        echo "Application deployed! Getting service info..."
+                        kubectl get service sample-app-service
+                    """
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+    }
+}
