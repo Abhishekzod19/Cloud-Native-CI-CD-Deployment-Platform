@@ -14,8 +14,10 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+                git branch: 'main',
+                git 'https://github.com/Abhishekzod19/Cloud-Native-CI-CD-Deployment-Platform.git',
                 
-                git 'https://github.com/Abhishekzod19/Cloud-Native-CI-CD-Deployment-Platform.git'
+                credentialsId: 'github-credentials'
             }
         }
         
