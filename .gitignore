@@ -1,0 +1,12 @@
+# Terraform
+terraform/.terraform/
+terraform/terraform.tfvars
+*.tfstate
+*.tfstate.*
+
+# Keys and secrets
+**keys/**           ← This line
+*.json              ← And this line
+
+# OS files
+.DS_Store
