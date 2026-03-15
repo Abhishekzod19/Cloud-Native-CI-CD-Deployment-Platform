@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         PATH = "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin"
-        DOCKER_IMAGE = 'abhishek19/sample-app:latest'
+        DOCKER_IMAGE = 'abhishekzod19/sample-app:latest'
         GCP_PROJECT = 'my-cloud-native-project-490312'
         GKE_CLUSTER = 'cicd-gke-cluster'
         GKE_ZONE = 'europe-west4-a'
@@ -35,7 +35,7 @@ pipeline {
                 script {
                     sh '''
                         # Login to Docker Hub using token
-                        echo "${DOCKER_HUB_PASSWORD}" | docker login -u abhishek19 --password-stdin
+                        echo "${DOCKER_HUB_PASSWORD}" | docker login -u abhishekzod19 --password-stdin
                         
                         # Push the image
                         docker push ${DOCKER_IMAGE}
@@ -54,14 +54,11 @@ pipeline {
                         gcloud container clusters get-credentials ${GKE_CLUSTER} \
                             --zone ${GKE_ZONE} --project ${GCP_PROJECT}
                         
-                        # Replace image in deployment
                         sed -i '' 's|\\${DOCKER_IMAGE}|${DOCKER_IMAGE}|g' kubernetes/deployment.yaml
                         
-                        # Apply Kubernetes manifests
                         kubectl apply -f kubernetes/deployment.yaml
                         kubectl apply -f kubernetes/service.yaml
                         
-                        # Wait for rollout
                         kubectl rollout status deployment/sample-app
                     """
                 }
