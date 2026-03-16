@@ -7,7 +7,6 @@ pipeline {
         GKE_CLUSTER = 'cicd-gke-cluster'
         GKE_ZONE = 'europe-west4-a'
         KUBECONFIG = '/Users/abhishekzod/.kube/config'
-        DOCKER_HUB_PASSWORD = credentials('docker-hub-credentials')
     }
     
     stages {
@@ -19,84 +18,39 @@ pipeline {
             }
         }
         
-        stage('Build Docker Image') {
+        stage('Build & Push Docker Image') {
             steps {
-                script {
-                    dir('app') {
-                        sh 'docker logout'
-                        
-                        sh 'docker build -t abhishekzod19/sample-app:latest .'
-                    }
-                }
-            }
-        }
-        
-        stage('Push to Docker Hub') {
-            steps {
-                script {
-                    
-                    sh '''
-                        echo "=== DOCKER PUSH STAGE ==="
-                        echo "Logging in to Docker Hub..."
-                        
-                        # Login with credentials (password is secret, username is hardcoded)
-                        echo "${DOCKER_HUB_PASSWORD}" | docker login -u abhishekzod19 --password-stdin
-                        
-                        echo "Pushing image: abhishekzod19/sample-app:latest"
-                        docker push abhishekzod19/sample-app:latest
-                        
-                        echo "Logging out..."
-                        docker logout
-                        echo "=== PUSH COMPLETE ==="
-                    '''
+                dir('app') {
+                    sh 'docker build -t abhishekzod19/sample-app:latest .'
+                    sh 'docker push abhishekzod19/sample-app:latest'
                 }
             }
         }
         
         stage('Deploy to GKE') {
             steps {
-                script {
-                    // Deploy stage can use double-quotes (no secrets here)
-                    sh """
-                        echo "=== DEPLOY TO GKE ==="
-                        gcloud container clusters get-credentials ${GKE_CLUSTER} \
-                            --zone ${GKE_ZONE} --project ${GCP_PROJECT}
-                        
-                        # Update deployment with correct image
-                        sed -i '' 's|\\${DOCKER_IMAGE}|abhishekzod19/sample-app:latest|g' kubernetes/deployment.yaml
-                        
-                        # Apply Kubernetes manifests
-                        kubectl apply -f kubernetes/deployment.yaml
-                        kubectl apply -f kubernetes/service.yaml
-                        
-                        # Wait for rollout
-                        kubectl rollout status deployment/sample-app
-                    """
-                }
+                sh """
+                    gcloud container clusters get-credentials ${GKE_CLUSTER} \
+                        --zone ${GKE_ZONE} --project ${GCP_PROJECT}
+                    
+                    sed -i '' 's|\\${DOCKER_IMAGE}|abhishekzod19/sample-app:latest|g' kubernetes/deployment.yaml
+                    
+                    kubectl apply -f kubernetes/deployment.yaml
+                    kubectl apply -f kubernetes/service.yaml
+                    kubectl rollout status deployment/sample-app
+                """
             }
         }
         
-        stage('Get Application URL') {
+        stage('Get App URL') {
             steps {
-                script {
-                    sh """
-                        echo "Application deployed! Getting service info..."
-                        kubectl get service sample-app-service
-                    """
-                }
+                sh 'kubectl get service sample-app-service'
             }
         }
     }
     
     post {
-        always {
-            cleanWs()
-        }
-        success {
-            echo '🎉 Pipeline completed successfully! Your app is live on GKE!'
-        }
-        failure {
-            echo 'Pipeline failed! Check the logs for details.'
-        }
+        always { cleanWs() }
+        success { echo '🎉 SUCCESS! App is live!' }
     }
 }
