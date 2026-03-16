@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: sample-app
-        image: abhishekzod19/sample-app:latest
+        image: abhishekzod19/sample-app:clean
         ports:
         - containerPort: 8080
         resources:
