@@ -38,3 +38,6 @@ spec:
             port: 8080
           initialDelaySeconds: 5
           periodSeconds: 5
+      # pull private images
+      imagePullSecrets:
+      - name: docker-hub-secret
