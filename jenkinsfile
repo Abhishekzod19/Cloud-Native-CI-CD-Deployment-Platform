@@ -21,8 +21,10 @@ pipeline {
         stage('Build & Push Docker Image') {
             steps {
                 dir('app') {
-                    sh 'docker build -t abhishekzod19/sample-app:latest .'
-                    sh 'docker push abhishekzod19/sample-app:latest'
+                    sh '''
+                        docker build --platform linux/amd64 -t abhishekzod19/sample-app:latest .
+                        docker push abhishekzod19/sample-app:latest
+                    '''
                 }
             }
         }
