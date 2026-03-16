@@ -4,7 +4,9 @@ pipeline {
     environment {
         PATH = "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin"
         DOCKER_IMAGE = 'abhishekzod19/sample-app:latest'
-        DOCKER_USER = 'abhishekzod19'  // Add this line
+        DOCKER_USER = 'abhishekzod19'  // Non-secret username
+        DOCKER_REPO = 'sample-app'      // Repository name
+        DOCKER_TAG = 'latest'            // Tag
         GCP_PROJECT = 'my-cloud-native-project-490312'
         GKE_CLUSTER = 'cicd-gke-cluster'
         GKE_ZONE = 'europe-west4-a'
@@ -25,8 +27,9 @@ pipeline {
             steps {
                 script {
                     dir('app') {
-                        sh 'docker logout'  // Clear any bad credentials
-                        docker.build("${DOCKER_IMAGE}")
+                        sh 'docker logout'
+                        // Build with explicit username
+                        sh "docker build -t ${DOCKER_USER}/${DOCKER_REPO}:${DOCKER_TAG} ."
                     }
                 }
             }
@@ -35,19 +38,19 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    sh '''
+                    sh """
                         echo "=== DOCKER PUSH STAGE ==="
                         echo "Logging in to Docker Hub..."
-                        # Use the explicit username variable
+                        # Use explicit non-secret username
                         echo "${DOCKER_HUB_PASSWORD}" | docker login -u ${DOCKER_USER} --password-stdin
                         
-                        echo "Pushing image: ${DOCKER_IMAGE}"
-                        docker push ${DOCKER_IMAGE}
+                        echo "Pushing image: ${DOCKER_USER}/${DOCKER_REPO}:${DOCKER_TAG}"
+                        docker push ${DOCKER_USER}/${DOCKER_REPO}:${DOCKER_TAG}
                         
                         echo "Logging out..."
                         docker logout
                         echo "=== PUSH COMPLETE ==="
-                    '''
+                    """
                 }
             }
         }
@@ -59,7 +62,8 @@ pipeline {
                         gcloud container clusters get-credentials ${GKE_CLUSTER} \
                             --zone ${GKE_ZONE} --project ${GCP_PROJECT}
                         
-                        sed -i '' 's|\\${DOCKER_IMAGE}|${DOCKER_IMAGE}|g' kubernetes/deployment.yaml
+                        # Update deployment with correct image
+                        sed -i '' 's|\\${DOCKER_IMAGE}|${DOCKER_USER}/${DOCKER_REPO}:${DOCKER_TAG}|g' kubernetes/deployment.yaml
                         
                         kubectl apply -f kubernetes/deployment.yaml
                         kubectl apply -f kubernetes/service.yaml
