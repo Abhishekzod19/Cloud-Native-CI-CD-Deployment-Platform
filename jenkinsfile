@@ -3,10 +3,6 @@ pipeline {
     
     environment {
         PATH = "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin"
-        DOCKER_IMAGE = 'abhishekzod19/sample-app:latest'
-        DOCKER_USER = 'abhishekzod19'  // Non-secret username
-        DOCKER_REPO = 'sample-app'      // Repository name
-        DOCKER_TAG = 'latest'            // Tag
         GCP_PROJECT = 'my-cloud-native-project-490312'
         GKE_CLUSTER = 'cicd-gke-cluster'
         GKE_ZONE = 'europe-west4-a'
@@ -28,8 +24,8 @@ pipeline {
                 script {
                     dir('app') {
                         sh 'docker logout'
-                        // Build with explicit username
-                        sh "docker build -t ${DOCKER_USER}/${DOCKER_REPO}:${DOCKER_TAG} ."
+                        
+                        sh 'docker build -t abhishekzod19/sample-app:latest .'
                     }
                 }
             }
@@ -38,19 +34,21 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    sh """
+                    
+                    sh '''
                         echo "=== DOCKER PUSH STAGE ==="
                         echo "Logging in to Docker Hub..."
-                        # Use explicit non-secret username
-                        echo "${DOCKER_HUB_PASSWORD}" | docker login -u ${DOCKER_USER} --password-stdin
                         
-                        echo "Pushing image: ${DOCKER_USER}/${DOCKER_REPO}:${DOCKER_TAG}"
-                        docker push ${DOCKER_USER}/${DOCKER_REPO}:${DOCKER_TAG}
+                        # Login with credentials (password is secret, username is hardcoded)
+                        echo "${DOCKER_HUB_PASSWORD}" | docker login -u abhishekzod19 --password-stdin
+                        
+                        echo "Pushing image: abhishekzod19/sample-app:latest"
+                        docker push abhishekzod19/sample-app:latest
                         
                         echo "Logging out..."
                         docker logout
                         echo "=== PUSH COMPLETE ==="
-                    """
+                    '''
                 }
             }
         }
@@ -58,16 +56,20 @@ pipeline {
         stage('Deploy to GKE') {
             steps {
                 script {
+                    // Deploy stage can use double-quotes (no secrets here)
                     sh """
+                        echo "=== DEPLOY TO GKE ==="
                         gcloud container clusters get-credentials ${GKE_CLUSTER} \
                             --zone ${GKE_ZONE} --project ${GCP_PROJECT}
                         
                         # Update deployment with correct image
-                        sed -i '' 's|\\${DOCKER_IMAGE}|${DOCKER_USER}/${DOCKER_REPO}:${DOCKER_TAG}|g' kubernetes/deployment.yaml
+                        sed -i '' 's|\\${DOCKER_IMAGE}|abhishekzod19/sample-app:latest|g' kubernetes/deployment.yaml
                         
+                        # Apply Kubernetes manifests
                         kubectl apply -f kubernetes/deployment.yaml
                         kubectl apply -f kubernetes/service.yaml
                         
+                        # Wait for rollout
                         kubectl rollout status deployment/sample-app
                     """
                 }
