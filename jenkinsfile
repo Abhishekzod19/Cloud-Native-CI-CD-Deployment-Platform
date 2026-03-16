@@ -33,6 +33,7 @@ pipeline {
                     gcloud container clusters get-credentials ${GKE_CLUSTER} \
                         --zone ${GKE_ZONE} --project ${GCP_PROJECT}
                     
+                    # Fixed: hardcoded image name instead of variable
                     sed -i '' 's|\\${DOCKER_IMAGE}|abhishekzod19/sample-app:latest|g' kubernetes/deployment.yaml
                     
                     kubectl apply -f kubernetes/deployment.yaml
@@ -50,7 +51,11 @@ pipeline {
     }
     
     post {
-        always { cleanWs() }
-        success { echo '🎉 SUCCESS! App is live!' }
+        always {
+            cleanWs()
+        }
+        success {
+            echo '🎉 SUCCESS! Your app is live on GKE!'
+        }
     }
 }
